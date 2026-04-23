@@ -956,6 +956,8 @@
   OvmfPkg/VirtioScsiDxe/VirtioScsi.inf
   OvmfPkg/VirtioSerialDxe/VirtioSerial.inf
   OvmfPkg/VirtioInputDxe/VirtioInput.inf
+  OvmfPkg/IgdAssignmentDxe/IgdAssignment.inf
+  OvmfPkg/PlatformGopPolicy/PlatformGopPolicy.inf
   MdeModulePkg/Universal/WatchdogTimerDxe/WatchdogTimer.inf
   MdeModulePkg/Universal/MonotonicCounterRuntimeDxe/MonotonicCounterRuntimeDxe.inf
   MdeModulePkg/Universal/CapsuleRuntimeDxe/CapsuleRuntimeDxe.inf
