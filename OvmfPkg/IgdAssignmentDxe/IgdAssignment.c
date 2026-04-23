@@ -143,6 +143,15 @@ GetPciName (
   }
   return PciInfo->Name;
 }
+#else
+STATIC
+CONST CHAR8 *
+GetPciName (
+  IN OUT CANDIDATE_PCI_INFO *PciInfo
+  )
+{
+  return "N/A";
+}
 #endif
 
 /**
@@ -469,6 +478,14 @@ PciIoNotify (
       continue;
     }
 
+    //
+    // For MTL/ARL+ (IgdBdsmNone) the host stolen window is identity-
+    // mapped into the guest by QEMU/VFIO and reserved via the standard
+    // QEMU etc/e820 fw_cfg blob (E820_RESERVED entry, picked up by
+    // PlatformInitLib's PlatformAddHobCB as EfiReservedMemoryType); no
+    // BDSM emulation is needed and the assignment of guest-allocated
+    // stolen memory must be skipped.
+    //
     if (mBdsmSize > 0) {
       SetupStolenMemory (PciIo, &PciInfo);
     }
@@ -542,7 +559,7 @@ IgdAssignmentEntry (
     QemuFwCfgSelectItem (BdsmItem);
     QemuFwCfgReadBytes (BdsmItemSize, &BdsmSize);
 
-    if (BdsmSize == 0 || BdsmSize > MAX_UINTN) {
+    if (BdsmSize > MAX_UINTN) {
       DEBUG ((DEBUG_ERROR, "%a: %a: invalid value: %Lu\n", __FUNCTION__,
         ASSIGNED_IGD_FW_CFG_BDSM_SIZE, BdsmSize));
       return EFI_PROTOCOL_ERROR;

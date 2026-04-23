@@ -221,8 +221,53 @@ PlatformAddHobCB (
 
       break;
     case EfiAcpiAddressRangeReserved:
-      BuildResourceDescriptorHob (EFI_RESOURCE_MEMORY_RESERVED, 0, Base, End - Base);
-      DEBUG ((DEBUG_INFO, "%a: Reserved [0x%Lx, 0x%Lx)\n", __func__, Base, End));
+      if (Base < PlatformInfoHob->LowMemory) {
+        //
+        // The reserved range overlaps the low-RAM region, which has
+        // already been described as EFI_RESOURCE_SYSTEM_MEMORY by
+        // an earlier PEI step. A bare
+        // BuildResourceDescriptorHob (EFI_RESOURCE_MEMORY_RESERVED, ...)
+        // would be silently dropped by the DXE Core in that case:
+        // CoreInternalAddMemorySpace() refuses to add a GCD entry
+        // for a range that is already covered, so the reservation
+        // would have no effect and the OS would see the range as
+        // EfiConventionalMemory.
+        //
+        // Carve it out as an EfiReservedMemoryType allocation inside
+        // the existing SYSTEM_MEMORY range instead; that is what
+        // surfaces as EfiReservedMemoryType in the UEFI memory map
+        // and prevents the OS from reusing the range.
+        //
+        // Above LowMemory there is no SYSTEM_MEMORY GCD entry to
+        // conflict with (e.g. the MMIO hole reservations like
+        // [0xFEFFC000, 0xFF000000)), so the resource descriptor HOB
+        // remains the right tool there.
+        //
+        BuildMemoryAllocationHob (Base, End - Base, EfiReservedMemoryType);
+        DEBUG ((
+          DEBUG_INFO,
+          "%a: Reserved (in-RAM) [0x%Lx, 0x%Lx) -> "
+          "EfiReservedMemoryType allocation\n",
+          __func__,
+          Base,
+          End
+          ));
+      } else {
+        BuildResourceDescriptorHob (
+          EFI_RESOURCE_MEMORY_RESERVED,
+          0,
+          Base,
+          End - Base
+          );
+        DEBUG ((
+          DEBUG_INFO,
+          "%a: Reserved [0x%Lx, 0x%Lx)\n",
+          __func__,
+          Base,
+          End
+          ));
+      }
+
       break;
     case EfiAcpiAddressRangeSoftReserved:
       BuildResourceDescriptorHob (
