@@ -160,6 +160,11 @@ GetVbtData (
         CopyMem((VOID*)mVbt, (VOID*)OpRegion->MBox4.RVBT, ((VBT_HEADER*)&OpRegion->MBox4)->Table_Size);
       } else {
         CopyMem((VOID*)mVbt, (VOID*)OpRegion + OpRegion->MBox3.RVDA, OpRegion->MBox3.RVDS);
+
+        DEBUG ((DEBUG_INFO, "IGD: VBT OpRegion=%p size=0x%x RVDA=0x%Lx\n",
+          OpRegion,
+          OpRegion->MBox3.RVDS,
+          OpRegion->MBox3.RVDA));
       }
 
       /* Fix the checksum */
@@ -223,5 +228,6 @@ PlatformGOPPolicyEntryPoint (
                   NULL
                   );
 
+  DEBUG ((DEBUG_INFO, "IGD: PlatformGopPolicy installed, status=%d\n", Status));
   return Status;
 }

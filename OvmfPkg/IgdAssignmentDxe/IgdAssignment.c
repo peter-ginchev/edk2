@@ -110,6 +110,14 @@ InitPciInfo (
   }
 
   PciInfo->Name[0] = '\0';
+
+  DEBUG ((DEBUG_VERBOSE,
+    "IGD: %a: %02x:%02x.%x VID=0x%04x Class=%02x:%02x:%02x\n",
+    __FUNCTION__,
+    (UINT8)PciInfo->Bus, (UINT8)PciInfo->Device, (UINT8)PciInfo->Function,
+    PciInfo->VendorId,
+    PciInfo->ClassCode[2], PciInfo->ClassCode[1], PciInfo->ClassCode[0]));
+
   return EFI_SUCCESS;
 }
 
@@ -405,13 +413,13 @@ SetupStolenMemory (
                         &Address
                         );
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a: %a: failed to write stolen memory address: %r\n",
-      __FUNCTION__, GetPciName (PciInfo), Status));
+    DEBUG ((DEBUG_ERROR, "IGD: %a: failed to write stolen memory address: %r\n",
+      GetPciName (PciInfo), Status));
     goto FreeStolenMemory;
   }
 
-  DEBUG ((DEBUG_INFO, "%a: %a: stolen memory @ 0x%Lx size 0x%Lx\n",
-    __FUNCTION__, GetPciName (PciInfo), Address, (UINT64)mBdsmSize));
+  DEBUG ((DEBUG_INFO, "IGD: %a: stolen memory @ 0x%Lx size %u MB\n",
+    GetPciName (PciInfo), Address, mBdsmSize / SIZE_1MB));
   return EFI_SUCCESS;
 
 FreeStolenMemory:
@@ -464,6 +472,8 @@ PciIoNotify (
       continue;
     }
 
+    DEBUG ((DEBUG_INFO, "IGD: %a\n", GetPciName (&PciInfo)));
+
     if (mOpRegionSize > 0) {
       SetupOpRegion (PciIo, &PciInfo);
     }
@@ -488,6 +498,10 @@ PciIoNotify (
     //
     if (mBdsmSize > 0) {
       SetupStolenMemory (PciIo, &PciInfo);
+    } else {
+      DEBUG ((DEBUG_INFO,
+        "IGD: %a: BDSM size is 0, skipping stolen memory setup\n",
+        GetPciName (&PciInfo)));
     }
   }
 }
@@ -532,10 +546,19 @@ IgdAssignmentEntry (
                  &BdsmItem,
                  &BdsmItemSize
                  );
+
+  DEBUG ((DEBUG_INFO, "IGD: %a: %a=%r (size=%lu) %a=%r\n",
+    __FUNCTION__,
+    ASSIGNED_IGD_FW_CFG_OPREGION, OpRegionStatus, (UINT64)mOpRegionSize,
+    ASSIGNED_IGD_FW_CFG_BDSM_SIZE, BdsmStatus));
+
   //
   // If neither fw_cfg file is available, assume no IGD is assigned.
   //
   if (EFI_ERROR (OpRegionStatus) && EFI_ERROR (BdsmStatus)) {
+    DEBUG ((DEBUG_INFO,
+      "IGD: %a: no IGD fw_cfg files; driver will not be active\n",
+      __FUNCTION__));
     return EFI_UNSUPPORTED;
   }
 
